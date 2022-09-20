@@ -1,0 +1,42 @@
+[DEFAULT]
+LDAP_URI = <Uri to your Ldap server>
+LDAP_BASE_DN = <OU=users,DC=example,DC=com>
+LDAP_BIND_DN = <uid=xxxx,ou=yyyy,dc=example,dc=com>
+LDAP_BIND_DN_PASSWORD= <password for BIND_DN>
+LDAP_FILTER = <(&(objectClass=zzzz)(aaaa=bbbb))>
+API_HOST = <Mailcow host>
+API_KEY = <Mailcow Api key>
+SYNC_INTERVAL = 3600
+SOGO_LDAP_FILTER = <objectClass='zzzz' AND aaaa='bbbb>'
+SQLITE_DB= <path/to/your/db/ldap-mailcow.sqlite3 file>
+# MAILCOW_INACTIVE=0 => no incoming mail/no login
+# MAILCOW_INACTIVE=2 => custom state: allow incoming mail/no login
+MAILCOW_INACTIVE = 0
+
+[MAIL]
+MAIL_FROM = ccc@your.domain
+MAIL_TO = <mails_for_problems@a.domain>
+MAIL_SUBJECT = <[LDAP Mailcow] Error report>
+MAIL_SERVER = <localhost | a domain>
+MAIL_PORT = <465 for SSL or 587 for TLS>
+MAIL_SSL = False
+MAIL_TLS = True
+MAIL_AUTH = True
+MAIL_AUTH_USERNAME = <a.mail@a.domain>
+MAIL_AUTH_PASSWD = <password of MAIL_AUTH_USERNAME>
+
+[LDAP]
+# The field that returns the complete name. (Ldap field)
+LDAP_CNFieldName=displayName
+# The field that starts a user DN if bindFields is not used (Ldap field)
+LDAP_IDFieldName=uid
+# The field that returns the login name of a user. (Ldap field)
+LDAP_UIDFieldName=uid
+# An array of fields to use when doing indirect binds. (Ldap field)
+LDAP_bindFields=uid
+# use Ldap password policies (YES or NO)
+LDAP_passwordPolicy=YES
+# If set to YES, this LDAP source is used as a shared address book (with read-only access). (YES or NO)
+LDAP_isAddressBook=YES
+# Name the addressbook (used if LDAP_isAddressBook =YES) (String)
+LDAP_abaddressBookName = <AddressBook name>

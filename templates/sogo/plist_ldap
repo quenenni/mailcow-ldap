@@ -6,11 +6,11 @@
     <string>$${line}_ldap</string>
 
     <key>CNFieldName</key>
-    <string>cn</string>
+    <string>$ldap_cnfieldname</string>
     <key>IDFieldName</key>
-    <string>uidNumber</string>
+    <string>$ldap_idfieldname</string>
     <key>UIDFieldName</key>
-    <string>mail</string>
+    <string>$ldap_uidfieldname</string>
 
     <key>baseDN</key>
     <string>$ldap_base_dn</string>
@@ -21,7 +21,7 @@
     <string>$ldap_bind_dn_password</string>
     <key>bindFields</key>
     <array>
-        <string>mail</string>
+        <string>$ldap_bindfields</string>
     </array>
 
     <key>bindAsCurrentUser</key>
@@ -31,14 +31,16 @@
     <string>$ldap_uri</string>
     <key>canAuthenticate</key>
     <string>YES</string>
+    <key>passwordPolicy</key>
+    <string>$ldap_passwordpolicy</string>
 
     <key>filter</key>
     <string>$sogo_ldap_filter</string>
 
     <key>isAddressBook</key>
-    <string>YES</string>
+    <string>$ldap_isaddressbook</string>
     <key>displayName</key>
-    <string>Webba adresboek</string>
+    <string>$ldap_abdisplayname</string>
 
     <key>scope</key>
     <string>SUB</string>
