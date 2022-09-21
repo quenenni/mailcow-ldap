@@ -60,13 +60,19 @@ def sync():
         return
 
     try:
-        ldap_connector = ldap.initialize(f"{config['LDAP_URI']}")
+        if config['LDAP_URL_TYPE'] == 'TLS':
+            uri="ldap://" + config['LDAP_URL'] + "/????!StartTLS"
+        elif config['LDAP_URL_TYPE'] == 'SSL':
+            uri="ldaps://" + config['LDAP_URL']
+        else:
+            uri="ldap://" + config['LDAP_URL']
+        ldap_connector = ldap.initialize(f"{uri}")
         ldap_connector.set_option(ldap.OPT_REFERRALS, 0)
         ldap_connector.simple_bind_s(
             config['LDAP_BIND_DN'], config['LDAP_BIND_DN_PASSWORD'])
     except:
-        syslog.syslog (syslog.LOG_ERR, f"Can't connect to LDAP server {config['LDAP_URI']}, skipping this sync...")
-        sendmail.send_email(config, f"Can't connect to LDAP server {config['LDAP_URI']}, skipping this sync...")
+        syslog.syslog (syslog.LOG_ERR, f"Can't connect to LDAP server {uri}, skipping this sync...")
+        sendmail.send_email(config, f"Can't connect to LDAP server {uri}, skipping this sync...")
         return
 
     ldap_results = ldap_connector.search_s(config['LDAP_BASE_DN'], ldap.SCOPE_SUBTREE,
@@ -101,6 +107,7 @@ def sync():
     for ldap_item in ldap_results:
         dt_string = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         #print(dt_string, ": ", ldap_item)
+
         try:
             mail=ldap_item[0]
             syslog.syslog(syslog.LOG_INFO, f"Working on {mail}")
@@ -139,7 +146,7 @@ def sync():
             domain = ldap_email.split('@')[1]
             if (not api.domain_exists(config, domain)):
                 syslog.syslog (syslog.LOG_ERR, f"Error: Domain {domain} doesn't exist for email {ldap_email}")
-                sendmail.send_email(config, f"Error: Domain {domain} doesn't exist for email {ldap_email}")
+                #sendmail.send_email(config, f"Error: Domain {domain} doesn't exist for email {ldap_email}")
                 continue
             else:
                 rsp_code, rsp_data = api.add_user(config, ldap_email, ldap_name, ldap_active, ldap_quota)
@@ -251,7 +258,8 @@ def read_config():
     configIni.read('config.ini')
 
     required_config_keys = [
-        'LDAP_URI',
+        'LDAP_URL',
+        'LDAP_URL_TYPE',
         'LDAP_BASE_DN',
         'LDAP_BIND_DN',
         'LDAP_BIND_DN_PASSWORD',
@@ -343,9 +351,20 @@ def read_dovecot_passdb_conf_template():
     with open('templates/dovecot/ldap/passdb.conf') as f:
         data = Template(f.read())
 
+    if config['LDAP_URL_TYPE'] == 'TLS':
+        uri="ldap://" + config['LDAP_URL']
+        tls="tls = yes"
+    elif config['LDAP_URL_TYPE'] == 'SSL':
+        uri="ldaps://" + config['LDAP_URL']
+        tls=''
+    else:
+        uri="ldap://" + config['LDAP_URL']
+        tls=''
+
     return data.substitute(
-        ldap_uri=config['LDAP_URI'],
-        ldap_base_dn=config['LDAP_BASE_DN']
+        ldap_uri=uri,
+        ldap_base_dn=config['LDAP_BASE_DN'],
+        ldap_tls=tls
     )
 
 
@@ -353,8 +372,15 @@ def read_sogo_plist_ldap_template():
     with open('templates/sogo/plist_ldap') as f:
         data = Template(f.read())
 
+    if config['LDAP_URL_TYPE'] == 'TLS':
+        uri="ldap://" + config['LDAP_URL'] + "/????!StartTLS"
+    elif config['LDAP_URL_TYPE'] == 'SSL':
+        uri="ldaps://" + config['LDAP_URL']
+    else:
+        uri="ldap://" + config['LDAP_URL']
+
     return data.substitute(
-        ldap_uri=config['LDAP_URI'],
+        ldap_uri=uri,
         ldap_base_dn=config['LDAP_BASE_DN'],
         ldap_bind_dn=config['LDAP_BIND_DN'],
         ldap_bind_dn_password=config['LDAP_BIND_DN_PASSWORD'],

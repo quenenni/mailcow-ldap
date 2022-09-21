@@ -1,5 +1,8 @@
 [DEFAULT]
-LDAP_URI = <Uri to your Ldap server>
+# The Ldap URI will be dynamically constructed from LDAP_URL & LDAP_URL_TYPE (it's different for dovecot or sogo or the syncer script)
+LDAP_URL = <Url to your Ldap server>
+# LDAP_URL_TYPE = TLS or SSL or CLEAR
+LDAP_URL_TYPE=TLS
 LDAP_BASE_DN = <OU=users,DC=example,DC=com>
 LDAP_BIND_DN = <uid=xxxx,ou=yyyy,dc=example,dc=com>
 LDAP_BIND_DN_PASSWORD= <password for BIND_DN>
