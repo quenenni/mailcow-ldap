@@ -61,11 +61,12 @@ def sync():
 
     try:
         if config['LDAP_URL_TYPE'] == 'TLS':
-            uri="ldap://" + config['LDAP_URL'] + "/????!StartTLS"
+            uri="ldap://" + config['LDAP_URL'] + ":" + config['LDAP_URL_PORT'] + "/????!StartTLS"
         elif config['LDAP_URL_TYPE'] == 'SSL':
-            uri="ldaps://" + config['LDAP_URL']
+            uri="ldaps://" + config['LDAP_URL'] + ":" + config['LDAP_URL_PORT']
         else:
-            uri="ldap://" + config['LDAP_URL']
+            uri="ldap://" + config['LDAP_URL'] + ":" + config['LDAP_URL_PORT']
+
         ldap_connector = ldap.initialize(f"{uri}")
         ldap_connector.set_option(ldap.OPT_REFERRALS, 0)
         ldap_connector.simple_bind_s(
@@ -260,6 +261,7 @@ def read_config():
     required_config_keys = [
         'LDAP_URL',
         'LDAP_URL_TYPE',
+        'LDAP_URL_PORT',
         'LDAP_BASE_DN',
         'LDAP_BIND_DN',
         'LDAP_BIND_DN_PASSWORD',
@@ -352,13 +354,13 @@ def read_dovecot_passdb_conf_template():
         data = Template(f.read())
 
     if config['LDAP_URL_TYPE'] == 'TLS':
-        uri="ldap://" + config['LDAP_URL']
+        uri="ldap://" + config['LDAP_URL'] + ":" + config['LDAP_URL_PORT']
         tls="tls = yes"
     elif config['LDAP_URL_TYPE'] == 'SSL':
-        uri="ldaps://" + config['LDAP_URL']
+        uri="ldaps://" + config['LDAP_URL'] + ":" + config['LDAP_URL_PORT']
         tls=''
     else:
-        uri="ldap://" + config['LDAP_URL']
+        uri="ldap://" + config['LDAP_URL'] + ":" + config['LDAP_URL_PORT']
         tls=''
 
     return data.substitute(
@@ -373,11 +375,11 @@ def read_sogo_plist_ldap_template():
         data = Template(f.read())
 
     if config['LDAP_URL_TYPE'] == 'TLS':
-        uri="ldap://" + config['LDAP_URL'] + "/????!StartTLS"
+        uri="ldap://" + config['LDAP_URL'] + ":" + config['LDAP_URL_PORT'] + "/????!StartTLS"
     elif config['LDAP_URL_TYPE'] == 'SSL':
-        uri="ldaps://" + config['LDAP_URL']
+        uri="ldaps://" + config['LDAP_URL'] + ":" + config['LDAP_URL_PORT']
     else:
-        uri="ldap://" + config['LDAP_URL']
+        uri="ldap://" + config['LDAP_URL'] + ":" + config['LDAP_URL_PORT']
 
     return data.substitute(
         ldap_uri=uri,
