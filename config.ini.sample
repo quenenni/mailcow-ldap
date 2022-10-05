@@ -2,7 +2,8 @@
 # The Ldap URI will be dynamically constructed from LDAP_URL & LDAP_URL_TYPE (it's different for dovecot or sogo or the syncer script)
 LDAP_URL = <Url to your Ldap server>
 # LDAP_URL_TYPE = TLS or SSL or CLEAR
-LDAP_URL_TYPE=TLS
+LDAP_URL_TYPE = TLS
+LDAP_URL_PORT = 389
 LDAP_BASE_DN = <OU=users,DC=example,DC=com>
 LDAP_BIND_DN = <uid=xxxx,ou=yyyy,dc=example,dc=com>
 LDAP_BIND_DN_PASSWORD= <password for BIND_DN>
@@ -17,7 +18,7 @@ SQLITE_DB= <path/to/your/db/ldap-mailcow.sqlite3 file>
 MAILCOW_INACTIVE = 0
 
 [MAIL]
-MAIL_FROM = ccc@your.domain
+MAIL_FROM = someone@your.domain
 MAIL_TO = <mails_for_problems@a.domain>
 MAIL_SUBJECT = <[LDAP Mailcow] Error report>
 MAIL_SERVER = <localhost | a domain>
