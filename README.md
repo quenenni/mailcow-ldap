@@ -1,3 +1,21 @@
+# About this fork
+
+Kudos to the original dev for this 'add-on' to Mailcow.
+
+I didn't touch anything related to Docker.
+I'm using it outside the Mailcow docker environment, so you'll have to manually copy the sogo & dovecot conf files if they changed.
+
+It's synchronizing the mail, the name, the quota and the active attribute from Ldap to Mailcow (field names configurable in config.ini).
+
+Also..
+1. Better manage TLS or SSL connection configurations (*)
+1. Added more options in config.ini
+2. Can send (or not) an email on error
+3. More detailled template files
+
+(*) Ldap Uri with TLS is different in Sogo and Dovecot config files.
+
+
 # ldap-mailcow
 
 Adds LDAP accounts to mailcow-dockerized and enables LDAP (e.g., Active Directory) authentication.

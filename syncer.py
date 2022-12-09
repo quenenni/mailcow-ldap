@@ -35,7 +35,8 @@ def main():
     plist_ldap_changed = apply_config('conf/sogo/plist_ldap', config_data=plist_ldap)
 
     if passdb_conf_changed or extra_conf_changed or plist_ldap_changed:
-        syslog.syslog(syslog.LOG_INFO, "One or more config files have been changed, please make sure to restart dovecot-mailcow and sogo-mailcow!")
+        syslog.syslog(syslog.LOG_INFO, f"One or more config files have been changed, please make sure to restart dovecot-mailcow and sogo-mailcow!")
+        if config['MAIL_ACTIVE']: sendmail.send_email(config, f"One or more config files have been changed, please make sure to restart dovecot-mailcow and sogo-mailcow!")
 
     while (True):
         sync()
@@ -56,7 +57,7 @@ def sync():
 
     if api_status != True:
         syslog.syslog(syslog.LOG_INFO, f"mailcow is not fully up, skipping this sync...")
-        sendmail.send_email(config, f"mailcow is not fully up, skipping this sync...")
+        if config['MAIL_ACTIVE']: sendmail.send_email(config, f"mailcow is not fully up, skipping this sync...")
         return
 
     try:
@@ -73,18 +74,18 @@ def sync():
             config['LDAP_BIND_DN'], config['LDAP_BIND_DN_PASSWORD'])
     except:
         syslog.syslog (syslog.LOG_ERR, f"Can't connect to LDAP server {uri}, skipping this sync...")
-        sendmail.send_email(config, f"Can't connect to LDAP server {uri}, skipping this sync...")
+        if config['MAIL_ACTIVE']: sendmail.send_email(config, f"Can't connect to LDAP server {uri}, skipping this sync...")
         return
 
     ldap_results = ldap_connector.search_s(config['LDAP_BASE_DN'], ldap.SCOPE_SUBTREE,
                                            config['LDAP_FILTER'],
-                                           ['uid', 'displayName', 'active', 'mailQuota'])
+                                           [config['LDAP_UIDFieldName'], config['LDAP_CNFieldName'], config['LDAP_active'], config['LDAP_mailQuota']])
 
     ldap_results = map(lambda x: (
-          x[1]['uid'][0].decode(),
-          x[1]['displayName'][0].decode(),
-          False if not str_to_bool(x[1]['active'][0]) else True,
-          x[1]['mailQuota'][0].decode()),
+          x[1][config['LDAP_UIDFieldName']][0].decode(),
+          x[1][config['LDAP_CNFieldName']][0].decode(),
+          False if not str_to_bool(x[1][config['LDAP_active']][0]) else True,
+          x[1][config['LDAP_mailQuota']][0].decode()),
           ldap_results)
 
     # Geet all accounts info from Mailcow in 1 request
@@ -92,11 +93,11 @@ def sync():
     if not rsp_code:
         if not rsp_data:
             syslog.syslog (syslog.LOG_ERR, f"Error retreiving data from Mailcow.")
-            sendmail.send_email(config, f"Error retreiving data from Mailcow.")
+            if config['MAIL_ACTIVE']: sendmail.send_email(config, f"Error retreiving data from Mailcow.")
             return
         else:
             syslog.syslog (syslog.LOG_ERR, rsp_data)
-            sendmail.send_email(config, rsp_data)
+            if config['MAIL_ACTIVE']: sendmail.send_email(config, rsp_data)
             return
 
     api_data = {}
@@ -108,13 +109,14 @@ def sync():
     for ldap_item in ldap_results:
         dt_string = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         #print(dt_string, ": ", ldap_item)
+        #sys.exit()
 
         try:
             mail=ldap_item[0]
             syslog.syslog(syslog.LOG_INFO, f"Working on {mail}")
         except:
             syslog.syslog (syslog.LOG_ERR, f"An error occurred while iterating through the LDAP users.")
-            sendmail.send_email(config, f"An error occurred while iterating through the LDAP users.")
+            if config['MAIL_ACTIVE']: sendmail.send_email(config, f"An error occurred while iterating through the LDAP users.")
             return
 
         ldap_email = ldap_item[0]
@@ -147,14 +149,14 @@ def sync():
             domain = ldap_email.split('@')[1]
             if (not api.domain_exists(config, domain)):
                 syslog.syslog (syslog.LOG_ERR, f"Error: Domain {domain} doesn't exist for email {ldap_email}")
-                #sendmail.send_email(config, f"Error: Domain {domain} doesn't exist for email {ldap_email}")
+                if config['MAIL_ACTIVE']: sendmail.send_email(config, f"Error: Domain {domain} doesn't exist for email {ldap_email}")
                 continue
             else:
                 rsp_code, rsp_data = api.add_user(config, ldap_email, ldap_name, ldap_active, ldap_quota)
 
                 if not rsp_code:
                     syslog.syslog (syslog.LOG_ERR, rsp_data)
-                    sendmail.send_email(config, rsp_data)
+                    if config['MAIL_ACTIVE']: sendmail.send_email(config, rsp_data)
                     continue
 
                 (api_user_exists, api_user_active, api_name, api_quota) = (True, ldap_active, ldap_name, ldap_quota)
@@ -171,7 +173,7 @@ def sync():
 
             if not rsp_code:
                 syslog.syslog (syslog.LOG_ERR, rsp_data)
-                sendmail.send_email(config, rsp_data)
+                if config['MAIL_ACTIVE']: sendmail.send_email(config, rsp_data)
                 continue
 
             syslog.syslog(syslog.LOG_INFO, f"{'Activated' if ldap_active else 'Deactived'} {ldap_email} in Mailcow")
@@ -182,7 +184,7 @@ def sync():
 
             if not rsp_code:
                 syslog.syslog (syslog.LOG_ERR, rsp_data)
-                sendmail.send_email(config, rsp_data)
+                if config['MAIL_ACTIVE']: sendmail.send_email(config, rsp_data)
                 continue
 
             syslog.syslog(syslog.LOG_INFO, f"Changed name of {ldap_email} in Mailcow to {ldap_name}")
@@ -193,7 +195,7 @@ def sync():
 
             if not rsp_code:
                 syslog.syslog (syslog.LOG_ERR, rsp_data)
-                sendmail.send_email(config, rsp_data)
+                if config['MAIL_ACTIVE']: sendmail.send_email(config, rsp_data)
                 continue
 
             syslog.syslog(syslog.LOG_INFO, f"Changed quota of {ldap_email} in Mailcow to {ldap_quota}Mo")
@@ -219,7 +221,7 @@ def sync():
 
             if not rsp_code:
                 syslog.syslog (syslog.LOG_ERR, rsp_data)
-                sendmail.send_email(config, rsp_data)
+                if config['MAIL_ACTIVE']: sendmail.send_email(config, rsp_data)
                 continue
 
             syslog.syslog(syslog.LOG_INFO, f"Deactivated user {db_email} in Mailcow, not found in LDAP")
@@ -258,6 +260,46 @@ def read_config():
     configIni = configparser.ConfigParser()
     configIni.read('config.ini')
 
+    config = {}
+
+    if 'MAIL_ACTIVE' in configIni['MAIL'] and configIni['MAIL']['MAIL_ACTIVE'] == 'True':
+        config['MAIL_ACTIVE'] = True
+    else:
+        config['MAIL_ACTIVE'] = False
+
+    if config['MAIL_ACTIVE']:
+        required_config_keys_mail = [
+            'MAIL_FROM',
+            'MAIL_TO',
+            'MAIL_SUBJECT',
+            'MAIL_SERVER',
+            'MAIL_PORT',
+            'MAIL_SSL',
+            'MAIL_TLS',
+            'MAIL_AUTH'
+        ]
+
+        for config_key in required_config_keys_mail:
+            if config_key not in configIni['MAIL']:
+                sys.exit(f"Required environment value {config_key} is not set")
+
+            if configIni['MAIL'][config_key] == 'False':
+                config[config_key] = False
+            elif configIni['MAIL'][config_key] == 'True':
+                config[config_key] = True
+            else:
+                config[config_key] = configIni['MAIL'][config_key]
+
+        if 'MAIL_AUTH' in configIni['MAIL'] and configIni['MAIL']['MAIL_AUTH'] == 'True' and 'MAIL_AUTH_USERNAME' not in configIni['MAIL']:
+            sys.exit('MAIL_AUTH_USERNAME is required when you specify MAIL_AUTH to True')
+        elif 'MAIL_AUTH' in configIni['MAIL'] and configIni['MAIL']['MAIL_AUTH'] == 'True':
+            config['MAIL_AUTH_USERNAME'] = configIni['MAIL']['MAIL_AUTH_USERNAME']
+
+        if 'MAIL_AUTH' in configIni['MAIL'] and configIni['MAIL']['MAIL_AUTH'] == 'True' and 'MAIL_AUTH_PASSWD' not in configIni['MAIL']:
+            sys.exit('MAIL_AUTH_PASSWD is required when you specify MAIL_AUTH to True')
+        elif 'MAIL_AUTH' in configIni['MAIL'] and configIni['MAIL']['MAIL_AUTH'] == 'True':
+            config['MAIL_AUTH_PASSWD'] = configIni['MAIL']['MAIL_AUTH_PASSWD']
+
     required_config_keys = [
         'LDAP_URL',
         'LDAP_URL_TYPE',
@@ -271,11 +313,9 @@ def read_config():
         'MAILCOW_INACTIVE'
     ]
 
-    config = {}
-
     for config_key in required_config_keys:
         if config_key not in configIni['DEFAULT']:
-            sendmail.send_email(config, f"Required environment value {config_key} is not set")
+            if config['MAIL_ACTIVE']: sendmail.send_email(config, f"Required environment value {config_key} is not set")
             sys.exit(f"Required environment value {config_key} is not set")
 
         config[config_key] = configIni['DEFAULT'][config_key]
@@ -296,43 +336,12 @@ def read_config():
     config['SOGO_LDAP_FILTER'] = configIni['DEFAULT']['SOGO_LDAP_FILTER'] if 'SOGO_LDAP_FILTER' in configIni['DEFAULT'] else "objectClass='user' AND objectCategory='person'"
 
     required_config_keys_mail = [
-        'MAIL_FROM',
-        'MAIL_TO',
-        'MAIL_SUBJECT',
-        'MAIL_SERVER',
-        'MAIL_PORT',
-        'MAIL_SSL',
-        'MAIL_TLS',
-        'MAIL_AUTH'
-    ]
-
-    for config_key in required_config_keys_mail:
-        if config_key not in configIni['MAIL']:
-            sendmail.send_email(config, f"Required environment value {config_key} is not set")
-            sys.exit(f"Required environment value {config_key} is not set")
-
-        if configIni['MAIL'][config_key] == 'False':
-            config[config_key] = False
-        elif configIni['MAIL'][config_key] == 'True':
-            config[config_key] = True
-        else:
-            config[config_key] = configIni['MAIL'][config_key]
-
-    if 'MAIL_AUTH' in configIni['MAIL'] and configIni['MAIL']['MAIL_AUTH'] == 'True' and 'MAIL_AUTH_USERNAME' not in configIni['MAIL']:
-        sys.exit('MAIL_AUTH_USERNAME is required when you specify MAIL_AUTH to True')
-    elif 'MAIL_AUTH' in configIni['MAIL'] and configIni['MAIL']['MAIL_AUTH'] == 'True':
-        config['MAIL_AUTH_USERNAME'] = configIni['MAIL']['MAIL_AUTH_USERNAME']
-
-    if 'MAIL_AUTH' in configIni['MAIL'] and configIni['MAIL']['MAIL_AUTH'] == 'True' and 'MAIL_AUTH_PASSWD' not in configIni['MAIL']:
-        sys.exit('MAIL_AUTH_PASSWD is required when you specify MAIL_AUTH to True')
-    elif 'MAIL_AUTH' in configIni['MAIL'] and configIni['MAIL']['MAIL_AUTH'] == 'True':
-        config['MAIL_AUTH_PASSWD'] = configIni['MAIL']['MAIL_AUTH_PASSWD']
-
-    required_config_keys_mail = [
         'LDAP_CNFieldName',
         'LDAP_IDFieldName',
         'LDAP_UIDFieldName',
         'LDAP_bindFields',
+        'LDAP_mailQuota',
+        'LDAP_active',
         'LDAP_passwordPolicy',
         'LDAP_isAddressBook',
         'LDAP_abaddressBookName'
@@ -340,7 +349,7 @@ def read_config():
 
     for config_key in required_config_keys_mail:
         if config_key not in configIni['LDAP']:
-            sendmail.send_email(config, f"Required environment value {config_key} is not set")
+            if config['MAIL_ACTIVE']: sendmail.send_email(config, f"Required environment value {config_key} is not set")
             sys.exit(f"Required environment value {config_key} is not set")
 
         else:
@@ -363,9 +372,15 @@ def read_dovecot_passdb_conf_template():
         uri="ldap://" + config['LDAP_URL'] + ":" + config['LDAP_URL_PORT']
         tls=''
 
+    ldap_filter_tmp = config['LDAP_FILTER'][1:-1]
+
     return data.substitute(
         ldap_uri=uri,
+        ldap_filter=ldap_filter_tmp,
         ldap_base_dn=config['LDAP_BASE_DN'],
+        ldap_bind_dn=config['LDAP_BIND_DN'],
+        ldap_bind_dn_password=config['LDAP_BIND_DN_PASSWORD'],
+        ldap_uidfieldname=config['LDAP_UIDFieldName'],
         ldap_tls=tls
     )
 

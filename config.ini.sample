@@ -18,14 +18,17 @@ SQLITE_DB= <path/to/your/db/ldap-mailcow.sqlite3 file>
 MAILCOW_INACTIVE = 0
 
 [MAIL]
+# Do you want the script to send an email when there is a problem
+# If True, other Mail options must be filled.
+MAIL_ACTIVE = <True | False>
 MAIL_FROM = someone@your.domain
 MAIL_TO = <mails_for_problems@a.domain>
 MAIL_SUBJECT = <[LDAP Mailcow] Error report>
 MAIL_SERVER = <localhost | a domain>
 MAIL_PORT = <465 for SSL or 587 for TLS>
-MAIL_SSL = False
-MAIL_TLS = True
-MAIL_AUTH = True
+MAIL_SSL = <True | False>
+MAIL_TLS = <True | Fasle>
+MAIL_AUTH = <True | False>
 MAIL_AUTH_USERNAME = <a.mail@a.domain>
 MAIL_AUTH_PASSWD = <password of MAIL_AUTH_USERNAME>
 
